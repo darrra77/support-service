@@ -53,8 +53,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       # 4. Проверяем базовые ошибки форматирования
-      - name: Check whitespace
-        run: git diff --check
+      - name: Check Java and Kotlin formatting
+        run: ./gradlew spotlessCheck
 
       # 5. Собираем приложение и запускаем тесты
       - name: Build and test

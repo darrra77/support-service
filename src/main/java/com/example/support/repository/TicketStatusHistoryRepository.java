@@ -1,11 +1,10 @@
 package com.example.support.repository;
 
 import com.example.support.model.TicketStatusHistory;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TicketStatusHistoryRepository
-        extends JpaRepository<TicketStatusHistory, Long> {
+public interface TicketStatusHistoryRepository extends JpaRepository<TicketStatusHistory, Long> {
 
-    List<TicketStatusHistory> findByTicketIdOrderByChangedAtAsc(Long ticketId);
+  List<TicketStatusHistory> findByTicketIdOrderByChangedAtAsc(Long ticketId);
 }

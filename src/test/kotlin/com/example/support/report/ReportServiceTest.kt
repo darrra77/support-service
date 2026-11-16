@@ -4,29 +4,26 @@ import com.example.support.model.Priority
 import com.example.support.model.Ticket
 import com.example.support.model.TicketStatus
 import com.example.support.repository.TicketRepository
-
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.web.server.ResponseStatusException
-
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class ReportServiceTest {
-
     private val repository =
         Mockito.mock(TicketRepository::class.java)
 
-    private val clock = Clock.fixed(
-        Instant.parse("2026-11-16T12:00:00Z"),
-        ZoneId.of("UTC")
-    )
+    private val clock =
+        Clock.fixed(
+            Instant.parse("2026-11-16T12:00:00Z"),
+            ZoneId.of("UTC"),
+        )
 
     private val service = ReportService(repository, clock)
 
@@ -38,12 +35,13 @@ class ReportServiceTest {
 
     @Test
     fun testEmptyReport() {
-
-        Mockito.`when`(
-            repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                from, to
-            )
-        ).thenReturn(emptyList())
+        Mockito
+            .`when`(
+                repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    from,
+                    to,
+                ),
+            ).thenReturn(emptyList())
 
         val result = service.getSummary(from, to)
 
@@ -54,7 +52,6 @@ class ReportServiceTest {
 
     @Test
     fun testStatusAndPriorityCount() {
-
         val ticket1 = Ticket()
         ticket1.status = TicketStatus.NEW
         ticket1.priority = Priority.HIGH
@@ -63,11 +60,13 @@ class ReportServiceTest {
         ticket2.status = TicketStatus.RESOLVED
         ticket2.priority = Priority.HIGH
 
-        Mockito.`when`(
-            repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                from, to
-            )
-        ).thenReturn(listOf(ticket1, ticket2))
+        Mockito
+            .`when`(
+                repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    from,
+                    to,
+                ),
+            ).thenReturn(listOf(ticket1, ticket2))
 
         val result = service.getSummary(from, to)
 
@@ -79,7 +78,6 @@ class ReportServiceTest {
 
     @Test
     fun testInvalidPeriod() {
-
         assertFailsWith<ResponseStatusException> {
             service.getSummary(to, from)
         }
@@ -87,21 +85,27 @@ class ReportServiceTest {
 
     @Test
     fun testOverdueTicket() {
-
         val ticket = Ticket()
 
         ticket.status = TicketStatus.NEW
         ticket.priority = Priority.HIGH
 
-        ticket.dueAt = LocalDateTime.of(
-            2026, 11, 15, 12, 0
-        )
-
-        Mockito.`when`(
-            repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                from, to
+        ticket.dueAt =
+            LocalDateTime.of(
+                2026,
+                11,
+                15,
+                12,
+                0,
             )
-        ).thenReturn(listOf(ticket))
+
+        Mockito
+            .`when`(
+                repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    from,
+                    to,
+                ),
+            ).thenReturn(listOf(ticket))
 
         val result = service.getSummary(from, to)
 

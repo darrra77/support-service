@@ -1,249 +1,254 @@
 package com.example.support.integration;
 
-import com.jayway.jsonpath.JsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 class TicketIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:16");
+  @Container static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
-    @DynamicPropertySource
-    static void configureDatabase(DynamicPropertyRegistry registry) {
+  @DynamicPropertySource
+  static void configureDatabase(DynamicPropertyRegistry registry) {
 
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+    registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    registry.add("spring.datasource.username", postgres::getUsername);
+    registry.add("spring.datasource.password", postgres::getPassword);
+  }
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+  @Autowired private JdbcTemplate jdbcTemplate;
 
-    @BeforeEach
-    void cleanDatabase() {
+  @BeforeEach
+  void cleanDatabase() {
 
-        jdbcTemplate.execute("DELETE FROM ticket_status_history");
-        jdbcTemplate.execute("DELETE FROM tickets");
-    }
+    jdbcTemplate.execute("DELETE FROM ticket_status_history");
+    jdbcTemplate.execute("DELETE FROM tickets");
+  }
 
-    // Вспомогательный метод создания заявки
-    private int createTicket() throws Exception {
+  // Вспомогательный метод создания заявки
+  private int createTicket() throws Exception {
 
-        String json = """
-                {
-                  "title": "Не работает компьютер",
-                  "description": "Компьютер не включается",
-                  "categoryId": 1,
-                  "priority": "HIGH"
-                }
-                """;
+    String json =
+        """
+        {
+          "title": "Не работает компьютер",
+          "description": "Компьютер не включается",
+          "categoryId": 1,
+          "priority": "HIGH"
+        }
+        """;
 
-        String response = mockMvc.perform(post("/api/tickets")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+    String response =
+        mockMvc
+            .perform(post("/api/tickets").contentType(MediaType.APPLICATION_JSON).content(json))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
 
-        return JsonPath.read(response, "$.id");
-    }
+    return JsonPath.read(response, "$.id");
+  }
 
-    // Тест 1. Получение категорий
-    @Test
-    void testGetCategories() throws Exception {
+  // Тест 1. Получение категорий
+  @Test
+  void testGetCategories() throws Exception {
 
-        mockMvc.perform(get("/api/categories"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(4));
-    }
+    mockMvc
+        .perform(get("/api/categories"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(4));
+  }
 
-    // Тест 2. Создание заявки
-    @Test
-    void testCreateTicket() throws Exception {
+  // Тест 2. Создание заявки
+  @Test
+  void testCreateTicket() throws Exception {
 
-        int id = createTicket();
+    int id = createTicket();
 
-        mockMvc.perform(get("/api/tickets/" + id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title")
-                        .value("Не работает компьютер"))
-                .andExpect(jsonPath("$.status")
-                        .value("NEW"));
-    }
+    mockMvc
+        .perform(get("/api/tickets/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Не работает компьютер"))
+        .andExpect(jsonPath("$.status").value("NEW"));
+  }
 
-    // Тест 3. Несуществующая заявка
-    @Test
-    void testTicketNotFound() throws Exception {
+  // Тест 3. Несуществующая заявка
+  @Test
+  void testTicketNotFound() throws Exception {
 
-        mockMvc.perform(get("/api/tickets/999999"))
-                .andExpect(status().isNotFound());
-    }
+    mockMvc.perform(get("/api/tickets/999999")).andExpect(status().isNotFound());
+  }
 
-    // Тест 4. Проверка обязательного заголовка
-    @Test
-    void testInvalidTicket() throws Exception {
+  // Тест 4. Проверка обязательного заголовка
+  @Test
+  void testInvalidTicket() throws Exception {
 
-        String json = """
-                {
-                  "title": "",
-                  "categoryId": 1,
-                  "priority": "HIGH"
-                }
-                """;
+    String json =
+        """
+        {
+          "title": "",
+          "categoryId": 1,
+          "priority": "HIGH"
+        }
+        """;
 
-        mockMvc.perform(post("/api/tickets")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isBadRequest());
-    }
+    mockMvc
+        .perform(post("/api/tickets").contentType(MediaType.APPLICATION_JSON).content(json))
+        .andExpect(status().isBadRequest());
+  }
 
-    // тест 5. Сохранение истории статусов
-    @Test
-    void testStatusHistory() throws Exception {
+  // тест 5. Сохранение истории статусов
+  @Test
+  void testStatusHistory() throws Exception {
 
-        int id = createTicket();
+    int id = createTicket();
 
-        String json = """
-                {
-                  "status": "IN_PROGRESS"
-                }
-                """;
+    String json =
+        """
+        {
+          "status": "IN_PROGRESS"
+        }
+        """;
 
-        mockMvc.perform(patch("/api/tickets/" + id + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json))
-                .andExpect(status().isOk());
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+        .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/tickets/" + id + "/history"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].oldStatus")
-                        .value("NEW"))
-                .andExpect(jsonPath("$[0].newStatus")
-                        .value("IN_PROGRESS"));
-    }
+    mockMvc
+        .perform(get("/api/tickets/" + id + "/history"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].oldStatus").value("NEW"))
+        .andExpect(jsonPath("$[0].newStatus").value("IN_PROGRESS"));
+  }
 
-    // Тест 6. Фильтрация заявок
-    @Test
-    void testFilterTickets() throws Exception {
+  // Тест 6. Фильтрация заявок
+  @Test
+  void testFilterTickets() throws Exception {
 
-        createTicket();
+    createTicket();
 
-        mockMvc.perform(get("/api/tickets")
-                        .param("status", "NEW")
-                        .param("priority", "HIGH"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].status")
-                        .value("NEW"));
-    }
+    mockMvc
+        .perform(get("/api/tickets").param("status", "NEW").param("priority", "HIGH"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.content[0].status").value("NEW"));
+  }
 
-    // Тест 7. Полный жизненный цикл заявки
-    @Test
-    void testFullTicketLifecycle() throws Exception {
+  // Тест 7. Полный жизненный цикл заявки
+  @Test
+  void testFullTicketLifecycle() throws Exception {
 
-        int id = createTicket();
+    int id = createTicket();
 
-        // Переводим заявку в работу
-        mockMvc.perform(patch("/api/tickets/" + id + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"IN_PROGRESS\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    // Переводим заявку в работу
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
 
-        // Редактируем заявку
-        mockMvc.perform(patch("/api/tickets/" + id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "description": "Заменили кабель",
-                                  "priority": "MEDIUM",
-                                  "dueAt": "2026-11-30T18:00:00"
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.priority").value("MEDIUM"));
+    // Редактируем заявку
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "description": "Заменили кабель",
+                      "priority": "MEDIUM",
+                      "dueAt": "2026-11-30T18:00:00"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.priority").value("MEDIUM"));
 
-        // Завершаем заявку
-        mockMvc.perform(patch("/api/tickets/" + id + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"RESOLVED\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("RESOLVED"))
-                .andExpect(jsonPath("$.closedAt").isNotEmpty());
+    // Завершаем заявку
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"RESOLVED\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("RESOLVED"))
+        .andExpect(jsonPath("$.closedAt").isNotEmpty());
 
-        // Проверяем сохранённые данные
-        mockMvc.perform(get("/api/tickets/" + id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.description").value("Заменили кабель"))
-                .andExpect(jsonPath("$.status").value("RESOLVED"));
+    // Проверяем сохранённые данные
+    mockMvc
+        .perform(get("/api/tickets/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.description").value("Заменили кабель"))
+        .andExpect(jsonPath("$.status").value("RESOLVED"));
 
-        // Проверяем историю изменений
-        mockMvc.perform(get("/api/tickets/" + id + "/history"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].newStatus").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$[1].newStatus").value("RESOLVED"));
-    }
+    // Проверяем историю изменений
+    mockMvc
+        .perform(get("/api/tickets/" + id + "/history"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].newStatus").value("IN_PROGRESS"))
+        .andExpect(jsonPath("$[1].newStatus").value("RESOLVED"));
+  }
 
-    // Тест 8. Запрет повторного открытия отменённой заявки
-    @Test
-    void testCannotReopenCancelledTicket() throws Exception {
+  // Тест 8. Запрет повторного открытия отменённой заявки
+  @Test
+  void testCannotReopenCancelledTicket() throws Exception {
 
-        int id = createTicket();
+    int id = createTicket();
 
-        // Отменяем заявку
-        mockMvc.perform(patch("/api/tickets/" + id + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"CANCELLED\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    // Отменяем заявку
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"CANCELLED\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("CANCELLED"));
 
-        // Пробуем повторно открыть
-        mockMvc.perform(patch("/api/tickets/" + id + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"IN_PROGRESS\"}"))
-                .andExpect(status().isConflict());
+    // Пробуем повторно открыть
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"IN_PROGRESS\"}"))
+        .andExpect(status().isConflict());
 
-        // Проверяем, что статус не изменился
-        mockMvc.perform(get("/api/tickets/" + id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+    // Проверяем, что статус не изменился
+    mockMvc
+        .perform(get("/api/tickets/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("CANCELLED"));
 
-        // Проверяем, что лишняя запись в истории не появилась
-        mockMvc.perform(get("/api/tickets/" + id + "/history"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].oldStatus").value("NEW"))
-                .andExpect(jsonPath("$[0].newStatus").value("CANCELLED"));
-    }
-
+    // Проверяем, что лишняя запись в истории не появилась
+    mockMvc
+        .perform(get("/api/tickets/" + id + "/history"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].oldStatus").value("NEW"))
+        .andExpect(jsonPath("$[0].newStatus").value("CANCELLED"));
+  }
 }

@@ -5,5 +5,5 @@ data class ReportSummary(
     val byStatus: Map<String, Int>,
     val byPriority: Map<String, Int>,
     val overdue: Int,
-    val averageResolutionMinutes: Double?
+    val averageResolutionMinutes: Double?,
 )

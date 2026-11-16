@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.spring") version "2.2.21"
     id("org.springframework.boot") version "3.5.16"
     id("io.spring.dependency-management") version "1.1.7"
+    id("com.diffplug.spotless") version "8.11.0"
 }
 
 group = "com.example"
@@ -54,6 +55,18 @@ tasks.withType<Test> {
         reports {
             xml.required.set(true)
             html.required.set(true)
+        }
+    }
+
+    spotless {
+        java {
+            target("src/**/*.java")
+            googleJavaFormat()
+        }
+
+        kotlin {
+            target("src/**/*.kt")
+            ktlint()
         }
     }
 }

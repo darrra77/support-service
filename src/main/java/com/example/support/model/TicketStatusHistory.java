@@ -7,61 +7,60 @@ import java.time.LocalDateTime;
 @Table(name = "ticket_status_history")
 public class TicketStatusHistory {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "ticket_id", nullable = false)
-    private Ticket ticket;
+  @ManyToOne
+  @JoinColumn(name = "ticket_id", nullable = false)
+  private Ticket ticket;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "old_status")
-    private TicketStatus oldStatus;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "old_status")
+  private TicketStatus oldStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "new_status", nullable = false)
-    private TicketStatus newStatus;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "new_status", nullable = false)
+  private TicketStatus newStatus;
 
-    @Column(name = "changed_at", nullable = false)
-    private LocalDateTime changedAt;
+  @Column(name = "changed_at", nullable = false)
+  private LocalDateTime changedAt;
 
-    public TicketStatusHistory() {
-    }
+  public TicketStatusHistory() {}
 
-    public Long getId() {
-        return id;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public Ticket getTicket() {
-        return ticket;
-    }
+  public Ticket getTicket() {
+    return ticket;
+  }
 
-    public void setTicket(Ticket ticket) {
-        this.ticket = ticket;
-    }
+  public void setTicket(Ticket ticket) {
+    this.ticket = ticket;
+  }
 
-    public TicketStatus getOldStatus() {
-        return oldStatus;
-    }
+  public TicketStatus getOldStatus() {
+    return oldStatus;
+  }
 
-    public void setOldStatus(TicketStatus oldStatus) {
-        this.oldStatus = oldStatus;
-    }
+  public void setOldStatus(TicketStatus oldStatus) {
+    this.oldStatus = oldStatus;
+  }
 
-    public TicketStatus getNewStatus() {
-        return newStatus;
-    }
+  public TicketStatus getNewStatus() {
+    return newStatus;
+  }
 
-    public void setNewStatus(TicketStatus newStatus) {
-        this.newStatus = newStatus;
-    }
+  public void setNewStatus(TicketStatus newStatus) {
+    this.newStatus = newStatus;
+  }
 
-    public LocalDateTime getChangedAt() {
-        return changedAt;
-    }
+  public LocalDateTime getChangedAt() {
+    return changedAt;
+  }
 
-    public void setChangedAt(LocalDateTime changedAt) {
-        this.changedAt = changedAt;
-    }
+  public void setChangedAt(LocalDateTime changedAt) {
+    this.changedAt = changedAt;
+  }
 }
