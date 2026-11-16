@@ -117,3 +117,91 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/darrra77/support-service:${{ github.sha }}
+
+  deploy:
+    name: Deploy and Verify
+    needs: publish-image
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      DB_PASSWORD: ${{ secrets.DEPLOY_DB_PASSWORD }}
+
+    steps:
+
+      # 1. Получаем файлы проекта
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Авторизуемся в GHCR
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Проверяем наличие пароля
+      - name: Check deployment configuration
+        run: |
+          test -n "$DB_PASSWORD"
+          docker compose version
+          docker compose -p support-deploy -f compose.deploy.yaml config --quiet
+
+      # 4. Запускаем опубликованный Docker-образ
+      - name: Deploy application
+        run: |
+          docker compose -p support-deploy -f compose.deploy.yaml up -d --no-build --pull always
+
+      # 5. Проверяем запуск приложения
+      - name: Health check
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8081/actuator/health | grep -q '"status":"UP"'; then
+              echo "Application is healthy"
+              exit 0
+            fi
+          
+            echo "Waiting for application..."
+            sleep 3
+          done
+          
+          echo "Application health check failed"
+          exit 1
+
+      # 6. Проверяем REST API
+      - name: Verify REST API
+        run: |
+          curl -fsS http://localhost:8081/api/categories -o categories.json
+          
+          python3 -c 'import json; data=json.load(open("categories.json")); assert len(data)==4'
+          
+          echo "REST API verification successful"
+
+      # 7. Сохраняем логи развёртывания
+      - name: Save deployment logs
+        if: always()
+        run: |
+          docker compose -p support-deploy -f compose.deploy.yaml logs --no-color > deployment.log
+
+      # 8. Публикуем логи
+      - name: Upload deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs
+          path: deployment.log
+          if-no-files-found: ignore
+
+      # 9. Останавливаем тестовый стенд
+      - name: Stop deployment
+        if: always()
+        run: |
+          docker compose -p support-deploy -f compose.deploy.yaml down
