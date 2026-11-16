@@ -17,6 +17,24 @@ jobs:
     permissions:
       contents: read
 
+    services:
+      postgres:
+        image: postgres:16
+
+        env:
+          POSTGRES_DB: supportdb
+          POSTGRES_USER: support
+          POSTGRES_PASSWORD: test_password
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd "pg_isready -U support -d supportdb"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
 
       # 1. Получаем исходный код
@@ -41,6 +59,11 @@ jobs:
       # 5. Собираем приложение и запускаем тесты
       - name: Build and test
         run: ./gradlew clean build jacocoTestReport
+
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/supportdb
+          DB_USER: support
+          DB_PASSWORD: test_password
 
       # 6. Сохраняем результаты тестирования
       - name: Upload test reports
