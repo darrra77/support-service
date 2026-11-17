@@ -111,4 +111,51 @@ class ReportServiceTest {
 
         assertEquals(1, result.overdue)
     }
+
+    @Test
+    fun testNoResolvedTickets() {
+        val ticket = Ticket()
+        ticket.status = TicketStatus.NEW
+        ticket.priority = Priority.HIGH
+
+        Mockito
+            .`when`(
+                repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    from,
+                    to,
+                ),
+            ).thenReturn(listOf(ticket))
+
+        val result = service.getSummary(from, to)
+
+        assertEquals(1, result.created)
+        assertNull(result.averageResolutionMinutes)
+    }
+
+    @Test
+    fun testDueAtExactCurrentTime() {
+        val ticket = Ticket()
+        ticket.status = TicketStatus.NEW
+        ticket.priority = Priority.HIGH
+        ticket.dueAt = LocalDateTime.of(2026, 11, 16, 12, 0)
+
+        Mockito
+            .`when`(
+                repository.findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                    from,
+                    to,
+                ),
+            ).thenReturn(listOf(ticket))
+
+        val result = service.getSummary(from, to)
+
+        assertEquals(0, result.overdue)
+    }
+
+    @Test
+    fun testEqualPeriodBounds() {
+        assertFailsWith<ResponseStatusException> {
+            service.getSummary(from, from)
+        }
+    }
 }
