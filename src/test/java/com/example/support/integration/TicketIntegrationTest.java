@@ -157,6 +157,52 @@ class TicketIntegrationTest {
         .andExpect(jsonPath("$.content[0].status").value("NEW"));
   }
 
+  // Регрессионный тест BUG-001
+  @Test
+  void testPatchPreservesDueAtWhenOmitted() throws Exception {
+
+    int id = createTicket();
+
+    // Устанавливаем срок выполнения
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "description": "Описание со сроком",
+                      "priority": "HIGH",
+                      "dueAt": "2026-12-30T18:00:00"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.dueAt").value("2026-12-30T18:00:00"));
+
+    // Изменяем описание и приоритет, не передавая dueAt
+    mockMvc
+        .perform(
+            patch("/api/tickets/" + id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "description": "Обновлённое описание",
+                      "priority": "MEDIUM"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.dueAt").value("2026-12-30T18:00:00"));
+
+    // Проверяем сохранённые данные
+    mockMvc
+        .perform(get("/api/tickets/" + id))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.description").value("Обновлённое описание"))
+        .andExpect(jsonPath("$.priority").value("MEDIUM"))
+        .andExpect(jsonPath("$.dueAt").value("2026-12-30T18:00:00"));
+  }
+
   // Тест 7. Полный жизненный цикл заявки
   @Test
   void testFullTicketLifecycle() throws Exception {

@@ -200,4 +200,28 @@ class TicketServiceTest {
 
     verify(ticketRepository).save(ticket);
   }
+
+  @Test
+  void testUpdatePreservesDueAtWhenOmitted() {
+
+    Ticket ticket = createTestTicket(TicketStatus.NEW);
+
+    LocalDateTime originalDueAt = LocalDateTime.of(2026, 12, 30, 18, 0);
+
+    ticket.setDueAt(originalDueAt);
+
+    when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+    when(ticketRepository.save(any(Ticket.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    UpdateTicketRequest request = new UpdateTicketRequest();
+
+    request.setDescription("Изменённое описание");
+    request.setPriority(Priority.MEDIUM);
+
+    Ticket result = ticketService.updateTicket(1L, request);
+
+    assertEquals(originalDueAt, result.getDueAt());
+  }
 }

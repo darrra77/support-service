@@ -79,9 +79,15 @@ public class TicketService {
           HttpStatus.CONFLICT, "Закрытую заявку нельзя редактировать");
     }
 
-    ticket.setDescription(request.getDescription());
+    if (request.isDescriptionProvided()) {
+      ticket.setDescription(request.getDescription());
+    }
+
     ticket.setPriority(request.getPriority());
-    ticket.setDueAt(request.getDueAt());
+
+    if (request.isDueAtProvided()) {
+      ticket.setDueAt(request.getDueAt());
+    }
 
     return ticketRepository.save(ticket);
   }
