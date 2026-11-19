@@ -1,0 +1,78 @@
+### 1. Проверка состояния приложения
+GET http://localhost:8080/actuator/health
+
+### 2. Получение категорий
+GET http://localhost:8080/api/categories
+
+### 3. Создание заявки
+POST http://localhost:8080/api/tickets
+Content-Type: application/json
+
+{
+  "title": "Не работает компьютер",
+  "description": "Компьютер не включается",
+  "categoryId": 1,
+  "priority": "HIGH",
+  "dueAt": "2026-12-30T18:00:00"
+}
+
+### 4. Получение списка заявок
+GET http://localhost:8080/api/tickets
+
+### 5. Получение заявки по ID
+GET http://localhost:8080/api/tickets/1
+
+### 6. Фильтрация заявок
+GET http://localhost:8080/api/tickets?status=NEW&priority=HIGH&page=0&size=10
+
+### 7. Редактирование заявки
+PATCH http://localhost:8080/api/tickets/1
+Content-Type: application/json
+
+{
+  "description": "Проверено подключение питания",
+  "priority": "MEDIUM"
+}
+
+### 8. Перевод заявки в работу
+PATCH http://localhost:8080/api/tickets/1/status
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
+### 9. Завершение заявки
+PATCH http://localhost:8080/api/tickets/1/status
+Content-Type: application/json
+
+{
+  "status": "RESOLVED"
+}
+
+### 10. История статусов
+GET http://localhost:8080/api/tickets/1/history
+
+### 11. Статистика Kotlin
+GET http://localhost:8080/api/reports/summary?from=2026-01-01T00:00:00&to=2027-01-01T00:00:00
+
+### 12. Несуществующая заявка - HTTP 404
+GET http://localhost:8080/api/tickets/999999
+
+### 13. Некорректная заявка - HTTP 400
+POST http://localhost:8080/api/tickets
+Content-Type: application/json
+
+{
+  "title": "",
+  "categoryId": 999999,
+  "priority": "HIGH"
+}
+
+### 14. Запрещённый переход статуса - HTTP 409
+PATCH http://localhost:8080/api/tickets/1/status
+Content-Type: application/json
+
+{
+  "status": "NEW"
+}
