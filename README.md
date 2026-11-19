@@ -153,7 +153,7 @@ GitHub Actions после успешной проверки исходников
 Для **ручного** запуска опубликованного образа используйте `compose.deploy.yaml` (отдельная база и порт `8081`):
 
 ```bash
-export IMAGE_TAG=<полный-SHA-опубликованного-образа>
+export IMAGE_TAG=$(git rev-parse 91068de)
 # DB_PASSWORD должен быть задан в .env или окружении
 docker compose -p support-deploy -f compose.deploy.yaml up -d --no-build --pull always
 curl -fsS http://localhost:8081/actuator/health
